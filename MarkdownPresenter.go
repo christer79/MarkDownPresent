@@ -5,47 +5,137 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
 )
 
 type Page struct {
-	Title string
-	Body  []byte
+	Timeout     int
+	Comment     string
+	Background  string
+	Description string
+	NextSlideNr int
+	Body        []byte
+}
+
+type Presentation struct {
+	Filename   string
+	Author     string
+	Background string
+	Pages      []Page
 }
 
 var port = "8000"
 var hostname = "http://localhost:" + port
 var folder = "./"
 
-func loadPage(title string) (*Page, error) {
-	filename := title + ".md"
+func isCommentedLine(line string) bool {
+	re := regexp.MustCompile("[[//]]: # ")
+	return re.MatchString(line)
+}
+
+func extractCommentMetadata(line string) (int, string, string) {
+	log.Println("Extracting metadata from line \"" + line + "\"")
+	// TODO: What if they are not found fix.
+	commentRe := regexp.MustCompile("Comment: \"([^\"]*)\"")
+	timeoutRe := regexp.MustCompile("Timeout: ([0-9]*)")
+	backgroundRe := regexp.MustCompile("Background: \"([^\"]*)")
+
+	var timeout, _ = strconv.Atoi(timeoutRe.FindAllStringSubmatch(line, -1)[0][1])
+	var comment = commentRe.FindAllStringSubmatch(line, -1)[0][1]
+	var background = backgroundRe.FindAllStringSubmatch(line, -1)[0][1]
+	log.Println("Timeout " + strconv.Itoa(timeout))
+	log.Println("Comment: " + comment)
+	log.Println("Background: " + background)
+	return timeout, comment, background
+}
+
+func loadPresentation(filename string) (Presentation, error) {
+	//TODO: Add one comment line with global settings
+	//TODO: use sha1sum to know if file changed
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return &Page{Title: title, Body: body}, nil
+	lines := strings.Split(string(body), "\n")
+
+	var page []byte
+	var pages []Page
+	for _, line := range lines {
+		if isCommentedLine(line) {
+			timeout, comment, background := extractCommentMetadata(line)
+			pages = append(pages, Page{Timeout: timeout, Comment: comment, Background: background, Body: page, NextSlideNr: len(pages) + 1})
+			page = []byte{}
+		} else {
+			page = append(page, []byte(line+"\n")...)
+		}
+	}
+	//TODO: Reload only if syntax is OK!
+	pages[len(pages)-1].NextSlideNr = 0
+	presentation := Presentation{Filename: filename, Pages: pages}
+
+	return presentation, err
+}
+
+func loadPage(filename string, slide int) (*Page, error) {
+	presentation, _ := loadPresentation(filename)
+	return &presentation.Pages[slide], nil
+}
+
+func getFileName(URL string) string {
+	re := regexp.MustCompile("/view/(.*)/[0-9]*$")
+	matches := re.FindStringSubmatch(URL)
+	filename := matches[1]
+	log.Println("Regexp match filename #: " + filename)
+	return filename
+}
+
+func getSlideNr(URL string) int {
+	log.Println("URL: \"" + URL + "\"")
+	re := regexp.MustCompile("/([0-9]*)$")
+	matches := re.FindStringSubmatch(URL)
+	slide, err := strconv.Atoi(matches[1])
+	if err != nil {
+		panic(err)
+	}
+	log.Println("Regexp match slide #: " + strconv.Itoa(slide))
+	return slide
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Path[len("/view/"):]
-	p, _ := loadPage(title)
+	slideNr := getSlideNr(r.URL.Path)
+	log.Println("Slidenr: " + strconv.Itoa(slideNr))
+	filename := getFileName(r.URL.Path)
+	log.Println("filename: " + filename)
+
+	p, _ := loadPage(filename, slideNr)
 	content := blackfriday.MarkdownCommon(p.Body)
 	html := bluemonday.UGCPolicy().SanitizeBytes(content)
-	fmt.Fprintf(w, "<h1>%s</h1><div>%s</div>", p.Title, html)
+
+	var timeoutString = ""
+	if p.Timeout > 0 {
+		timeoutString = "<script>setTimeout(function(){ location.href = \"" + strconv.Itoa(p.NextSlideNr) + "\"; }, " + strconv.Itoa(p.Timeout*1000) + ");</script>"
+	}
+	fmt.Fprintf(w, "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js\"></script>"+timeoutString+"<script>$(document).ready(function(){$(\"body\").click(function(){location.href = \""+strconv.Itoa(p.NextSlideNr)+"\";});});</script><body background=\""+p.Background+"\"><h1>%s</h1><div>%s</div>", p.Comment, html)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("indexHandler")
 
+	//TODO: Select only files
+	//TODO: Recurse into subfolders
 	files, _ := ioutil.ReadDir(folder)
 
 	fmt.Fprintf(w, "<h1>Folder list:</h>\n<ul>\n")
 	for _, file := range files {
 		if file.IsDir() {
 			log.Printf("Folder :" + file.Name())
-			fmt.Fprintf(w, "<li><a href=\""+hostname+"/view/"+file.Name()+"/README\">"+file.Name()+"</a></li>\n")
+			// TODO: Print number of pagaes and links to each page on index page
+			fmt.Fprintf(w, "<li><a href=\""+hostname+"/view/"+file.Name()+"/README.md/0\">"+file.Name()+"</a></li>\n")
 		}
 	}
 	fmt.Fprintf(w, "</ul>\n")
