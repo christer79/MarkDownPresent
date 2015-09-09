@@ -38,20 +38,11 @@ func isCommentedLine(line string) bool {
 	return re.MatchString(line)
 }
 
-func extractCommentMetadata(line string) (int, string, string) {
-	log.Println("Extracting metadata from line \"" + line + "\"")
-	// TODO: What if they are not found fix.
-	commentRe := regexp.MustCompile("Comment: \"([^\"]*)\"")
-	timeoutRe := regexp.MustCompile("Timeout: ([0-9]*)")
-	backgroundRe := regexp.MustCompile("Background: \"([^\"]*)")
-
-	var timeout, _ = strconv.Atoi(timeoutRe.FindAllStringSubmatch(line, -1)[0][1])
-	var comment = commentRe.FindAllStringSubmatch(line, -1)[0][1]
-	var background = backgroundRe.FindAllStringSubmatch(line, -1)[0][1]
-	log.Println("Timeout " + strconv.Itoa(timeout))
-	log.Println("Comment: " + comment)
-	log.Println("Background: " + background)
-	return timeout, comment, background
+func extractCommentDataFiled(line string, label string) string {
+	commentRe := regexp.MustCompile(label + ": \"([^\"]*)\"")
+	value := commentRe.FindAllStringSubmatch(line, -1)[0][1]
+	log.Println("Found " + label + ": \"" + value + "\"")
+	return value
 }
 
 func loadPresentation(filename string) (Presentation, error) {
@@ -62,12 +53,26 @@ func loadPresentation(filename string) (Presentation, error) {
 		panic(err)
 	}
 	lines := strings.Split(string(body), "\n")
-
+	author := ""
+	created := ""
+	defaultBackground := ""
+	if isCommentedLine(lines[0]) {
+		author = extractCommentDataFiled(lines[0], "Author")
+		created = extractCommentDataFiled(lines[0], "Created")
+		defaultBackground = extractCommentDataFiled(lines[0], "Background")
+		lines = lines[1:]
+	}
+	log.Println("Default background: " + defaultBackground)
+	log.Println("Author: " + author)
+	log.Println("Created date: " + created)
 	var page []byte
 	var pages []Page
 	for _, line := range lines {
 		if isCommentedLine(line) {
-			timeout, comment, background := extractCommentMetadata(line)
+			timeout, _ := strconv.Atoi(extractCommentDataFiled(line, "Timeout"))
+			comment := extractCommentDataFiled(line, "Comment")
+			background := extractCommentDataFiled(line, "Background")
+
 			pages = append(pages, Page{Timeout: timeout, Comment: comment, Background: background, Body: page, NextSlideNr: len(pages) + 1})
 			page = []byte{}
 		} else {
