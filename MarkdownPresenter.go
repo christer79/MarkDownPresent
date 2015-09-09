@@ -39,6 +39,7 @@ func isCommentedLine(line string) bool {
 }
 
 func extractCommentDataFiled(line string, label string) string {
+	// TODO: Default return value woudl be clever here
 	commentRe := regexp.MustCompile(label + ": \"([^\"]*)\"")
 	value := commentRe.FindAllStringSubmatch(line, -1)[0][1]
 	log.Println("Found " + label + ": \"" + value + "\"")
@@ -46,7 +47,6 @@ func extractCommentDataFiled(line string, label string) string {
 }
 
 func loadPresentation(filename string) (Presentation, error) {
-	//TODO: Add one comment line with global settings
 	//TODO: use sha1sum to know if file changed
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -72,7 +72,9 @@ func loadPresentation(filename string) (Presentation, error) {
 			timeout, _ := strconv.Atoi(extractCommentDataFiled(line, "Timeout"))
 			comment := extractCommentDataFiled(line, "Comment")
 			background := extractCommentDataFiled(line, "Background")
-
+			if background == "" {
+				background = defaultBackground
+			}
 			pages = append(pages, Page{Timeout: timeout, Comment: comment, Background: background, Body: page, NextSlideNr: len(pages) + 1})
 			page = []byte{}
 		} else {
