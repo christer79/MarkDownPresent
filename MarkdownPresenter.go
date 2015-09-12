@@ -69,7 +69,7 @@ func loadPresentation(filename string) (Presentation, error) {
 	var pages []Page
 	for _, line := range lines {
 		if isCommentedLine(line) {
-			timeout, _ := strconv.Atoi(extractCommentDataFiled(line, "Timeout"))
+			timeout, _ := strconv.Atoi(extractCommentDataFiled(line, "Time out"))
 			comment := extractCommentDataFiled(line, "Comment")
 			background := extractCommentDataFiled(line, "Background")
 			if background == "" {
