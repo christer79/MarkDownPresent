@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/christer79/MarkDownPresent/mdFormat"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
 )
@@ -33,33 +34,22 @@ var port = "8000"
 var hostname = "http://localhost:" + port
 var folder = "./"
 
-func isCommentedLine(line string) bool {
-	re := regexp.MustCompile("[[//]]: # ")
-	return re.MatchString(line)
-}
-
-func extractCommentDataFiled(line string, label string) string {
-	// TODO: Default return value woudl be clever here
-	commentRe := regexp.MustCompile(label + ": \"([^\"]*)\"")
-	value := commentRe.FindAllStringSubmatch(line, -1)[0][1]
-	log.Println("Found " + label + ": \"" + value + "\"")
-	return value
-}
-
 func loadPresentation(filename string) (Presentation, error) {
 	//TODO: use sha1sum to know if file changed
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
+	log.Print(body)
 	lines := strings.Split(string(body), "\n")
 	author := ""
 	created := ""
 	defaultBackground := ""
-	if isCommentedLine(lines[0]) {
-		author = extractCommentDataFiled(lines[0], "Author")
-		created = extractCommentDataFiled(lines[0], "Created")
-		defaultBackground = extractCommentDataFiled(lines[0], "Background")
+	if mdFormat.IsCommentedLine(lines[0]) {
+		log.Println("Found comment")
+		author = mdFormat.ExtractCommentDataFiled(lines[0], "Author")
+		created = mdFormat.ExtractCommentDataFiled(lines[0], "Created")
+		defaultBackground = mdFormat.ExtractCommentDataFiled(lines[0], "Background")
 		lines = lines[1:]
 	}
 	log.Println("Default background: " + defaultBackground)
@@ -68,10 +58,11 @@ func loadPresentation(filename string) (Presentation, error) {
 	var page []byte
 	var pages []Page
 	for _, line := range lines {
-		if isCommentedLine(line) {
-			timeout, _ := strconv.Atoi(extractCommentDataFiled(line, "Time out"))
-			comment := extractCommentDataFiled(line, "Comment")
-			background := extractCommentDataFiled(line, "Background")
+		log.Println(line)
+		if mdFormat.IsCommentedLine(line) {
+			timeout, _ := strconv.Atoi(mdFormat.ExtractCommentDataFiled(line, "Timeout"))
+			comment := mdFormat.ExtractCommentDataFiled(line, "Comment")
+			background := mdFormat.ExtractCommentDataFiled(line, "Background")
 			if background == "" {
 				background = defaultBackground
 			}
