@@ -37,3 +37,7 @@ func TestExtractCommentedDataField(t *testing.T) {
 		}
 	}
 }
+
+func TestMarkdownToHTML(t *testing.T) {
+	t.Log("No tests are run")
+}

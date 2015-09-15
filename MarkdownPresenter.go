@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/christer79/MarkDownPresent/fileTools"
 	"github.com/christer79/MarkDownPresent/mdFormat"
-	"github.com/microcosm-cc/bluemonday"
-	"github.com/russross/blackfriday"
 )
 
-type Page struct {
+// Slide represents one slinge slide with infomration about time to show and content
+type Slide struct {
 	Timeout     int
 	Comment     string
 	Background  string
@@ -23,16 +23,17 @@ type Page struct {
 	Body        []byte
 }
 
+//Presentation represents a collection of Slides as well as information about author and creation date
 type Presentation struct {
 	Filename   string
 	Author     string
 	Background string
-	Pages      []Page
+	Pages      []Slide
 }
 
 var port = "8000"
 var hostname = "http://localhost:" + port
-var folder = "./"
+var folder = "./examples"
 
 func loadPresentation(filename string) (Presentation, error) {
 	//TODO: use sha1sum to know if file changed
@@ -56,7 +57,7 @@ func loadPresentation(filename string) (Presentation, error) {
 	log.Println("Author: " + author)
 	log.Println("Created date: " + created)
 	var page []byte
-	var pages []Page
+	var pages []Slide
 	for _, line := range lines {
 		log.Println(line)
 		if mdFormat.IsCommentedLine(line) {
@@ -66,7 +67,7 @@ func loadPresentation(filename string) (Presentation, error) {
 			if background == "" {
 				background = defaultBackground
 			}
-			pages = append(pages, Page{Timeout: timeout, Comment: comment, Background: background, Body: page, NextSlideNr: len(pages) + 1})
+			pages = append(pages, Slide{Timeout: timeout, Comment: comment, Background: background, Body: page, NextSlideNr: len(pages) + 1})
 			page = []byte{}
 		} else {
 			page = append(page, []byte(line+"\n")...)
@@ -79,7 +80,7 @@ func loadPresentation(filename string) (Presentation, error) {
 	return presentation, err
 }
 
-func loadPage(filename string, slide int) (*Page, error) {
+func loadPage(filename string, slide int) (*Slide, error) {
 	presentation, _ := loadPresentation(filename)
 	return &presentation.Pages[slide], nil
 }
@@ -111,14 +112,20 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("filename: " + filename)
 
 	p, _ := loadPage(filename, slideNr)
-	content := blackfriday.MarkdownCommon(p.Body)
-	html := bluemonday.UGCPolicy().SanitizeBytes(content)
+	html := mdFormat.MarkDownToHTML(p.Body)
 
 	var timeoutString = ""
 	if p.Timeout > 0 {
 		timeoutString = "<script>setTimeout(function(){ location.href = \"" + strconv.Itoa(p.NextSlideNr) + "\"; }, " + strconv.Itoa(p.Timeout*1000) + ");</script>"
 	}
-	fmt.Fprintf(w, "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js\"></script>"+timeoutString+"<script>$(document).ready(function(){$(\"body\").click(function(){location.href = \""+strconv.Itoa(p.NextSlideNr)+"\";});});</script><body background=\""+p.Background+"\"><h1>%s</h1><div>%s</div>", p.Comment, html)
+	ajaxString := "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js\"></script>"
+	mouseClickString := "<script>$(document).ready(function(){$(\"body\").click(function(){location.href = \"" + strconv.Itoa(p.NextSlideNr) + "\";});});</script>"
+	//cssString := "<style>h1 {color:red;}</style>"
+	//cssString := "" //"<link rel=\"stylesheet\" href=\"style.css\">"
+	body, _ := ioutil.ReadFile("style.css")
+	cssString := "<style>" + string(body) + "</style>"
+
+	fmt.Fprintf(w, cssString+ajaxString+timeoutString+mouseClickString+"<body background=\""+p.Background+"\"><div>%s</div>", html)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,15 +133,13 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	//TODO: Select only files
 	//TODO: Recurse into subfolders
-	files, _ := ioutil.ReadDir(folder)
-
+	//files, _ := ioutil.ReadDir(folder)
+	files := fileTools.FindFiles(folder, "*.md")
 	fmt.Fprintf(w, "<h1>Folder list:</h>\n<ul>\n")
 	for _, file := range files {
-		if file.IsDir() {
-			log.Printf("Folder :" + file.Name())
-			// TODO: Print number of pagaes and links to each page on index page
-			fmt.Fprintf(w, "<li><a href=\""+hostname+"/view/"+file.Name()+"/README.md/0\">"+file.Name()+"</a></li>\n")
-		}
+		log.Printf("Folder :" + file)
+		// TODO: Print number of pagaes and links to each page on index page
+		fmt.Fprintf(w, "<li><a href=\""+hostname+"/view/"+file+"/0\">"+file+"</a></li>\n")
 	}
 	fmt.Fprintf(w, "</ul>\n")
 }

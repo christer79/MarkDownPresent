@@ -1,6 +1,11 @@
 package mdFormat
 
-import "regexp"
+import (
+	"regexp"
+
+	"github.com/microcosm-cc/bluemonday"
+	"github.com/russross/blackfriday"
+)
 
 func init() {
 
@@ -21,4 +26,11 @@ func ExtractCommentDataFiled(line string, label string) string {
 		return ""
 	}
 	return value[1]
+}
+
+// MarkDownToHTML takes markdown and returns html
+func MarkDownToHTML(markdown []byte) []byte {
+	content := blackfriday.MarkdownCommon(markdown)
+	html := bluemonday.UGCPolicy().SanitizeBytes(content)
+	return html
 }
