@@ -36,7 +36,7 @@ li:before{
    height: 15;
    width: 15;
    margin-right: 20px;
-   background-image: url('http://www.skilikeawoman.com/images/bluesquare2.gif');
+   background-image: url('/background/bluesquare2.gif');
 }
 table, th, td {
   border: 0px solid black;

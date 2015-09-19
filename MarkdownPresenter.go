@@ -59,8 +59,6 @@ func loadPresentation(filename string) (Presentation, error) {
 	}
 	log.Println("Author: " + author)
 	log.Println("Created date: " + created)
-	log.Println("Default style: " + defaultStyle)
-	log.Println("Default background: " + defaultBackground)
 
 	var page []byte
 	var slides []Slide
@@ -68,6 +66,9 @@ func loadPresentation(filename string) (Presentation, error) {
 		if mdFormat.IsCommentedLine(line) {
 			timeout, _ := strconv.Atoi(mdFormat.ExtractCommentDataFiled(line, "Timeout", "20000000"))
 			timeout = timeout * 1000
+			if timeout == 0 {
+				timeout = 300000000
+			}
 			comment := mdFormat.ExtractCommentDataFiled(line, "Comment", "")
 			style := mdFormat.ExtractCommentDataFiled(line, "Style", defaultStyle)
 			background := mdFormat.ExtractCommentDataFiled(line, "Background", defaultBackground)
@@ -97,12 +98,10 @@ func getFileName(URL string) string {
 	re := regexp.MustCompile("/view/(.*)/[0-9]*$")
 	matches := re.FindStringSubmatch(URL)
 	filename := matches[1]
-	log.Println("Regexp match filename #: " + filename)
 	return filename
 }
 
 func getSlideNr(URL string) int {
-	log.Println("URL: \"" + URL + "\"")
 	re := regexp.MustCompile("/([0-9]*)$")
 	matches := re.FindStringSubmatch(URL)
 	slide, err := strconv.Atoi(matches[1])
@@ -113,7 +112,6 @@ func getSlideNr(URL string) int {
 }
 
 func styleHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("styleHandler with: " + r.URL.Path)
 	filename := strings.TrimPrefix(r.URL.Path, "/")
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -123,7 +121,6 @@ func styleHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func backgroundHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("backgroundHandler with: " + r.URL.Path)
 	filename := strings.TrimPrefix(r.URL.Path, "/")
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -133,16 +130,10 @@ func backgroundHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("viewHandler with: " + r.URL.Path)
 	slideNr := getSlideNr(r.URL.Path)
-	log.Println("Slidenr: " + strconv.Itoa(slideNr))
 	filename := getFileName(r.URL.Path)
-	log.Println("filename: " + filename)
 
 	p, _ := loadSlide(filename, slideNr)
-	log.Println("Style:    " + p.Style)
-	log.Println("Comment:  " + p.Comment)
-
 	t, err := template.ParseFiles("html.tmpl/view.html")
 	if err != nil {
 		log.Println(err)
@@ -151,12 +142,9 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("indexHandler")
-
 	files := fileTools.FindFiles(folder, "*.md")
 	fmt.Fprintf(w, "<h1>Folder list:</h>\n<ul>\n")
 	for _, file := range files {
-		log.Printf("Folder :" + file)
 		// TODO: Print number of pagaes and links to each page on index page
 		fmt.Fprintf(w, "<li><a href=\""+hostname+"/view/"+file+"/0\">"+file+"</a></li>\n")
 	}
@@ -168,8 +156,6 @@ func main() {
 	http.HandleFunc("/view/", viewHandler)
 	http.HandleFunc("/index/", indexHandler)
 	http.HandleFunc("/style/", styleHandler)
-	//http.HandleFunc("/background/", styleHandler)
 	http.Handle("/background/", http.StripPrefix("/background/", http.FileServer(http.Dir("background"))))
-
 	http.ListenAndServe(":"+port, nil)
 }
