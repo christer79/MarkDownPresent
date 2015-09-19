@@ -1,4 +1,4 @@
-[[//]]: # Author: "Christer Eriksson <christer.j.eriksson@gmail.com>" Created: "2015-0-9-10" Background: "/background/scale.png" Style: "/style/style.css"
+[[//]]: # Author: "Christer Eriksson <christer.j.eriksson@gmail.com>" Created: "2015-0-9-10" Background: "/background/ruler.png" Style: "/style/style.css"
 
 # Title1
 ## Title2
