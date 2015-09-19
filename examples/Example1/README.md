@@ -1,4 +1,4 @@
-[[//]]: # Author: "Christer Eriksson <christer.j.eriksson@gmail.com>" Created: "2015-0-9-10" Background: "http://www.nordicds.se/wp-content/uploads/2015/03/clean-white-polygon-backgrounds-8.jpg"
+[[//]]: # Author: "Christer Eriksson <christer.j.eriksson@gmail.com>" Created: "2015-0-9-10" Background: "/background/scale.png" Style: "/style/style.css"
 
 # Title1
 ## Title2
@@ -10,7 +10,7 @@ Here is a list
   - Item2
   - Item3
 
-[[//]]: # Timeout: "2" Comment: "First slide"
+[[//]]: # Timeout: "10" Comment: "First slide"
 
 
 # Title1
@@ -25,7 +25,7 @@ Some code
       cout endl;
     }
 
-[[//]]: # Timeout: "2" Comment: "Second slide"
+[[//]]: # Timeout: "5" Comment: "Second slide"
 
 # Title1
 ## Title2
@@ -33,7 +33,7 @@ Some code
 
 Don't know what to put here at all, some text to show what happens when you write a small story in your presentation. Who would want to do that by the way. A story in your presentation. Keep it simple so that people can remember what it said.
 
-[[//]]: # Timeout: "2" Comment: "Third slide"
+[[//]]: # Timeout: "4" Comment: "Third slide"
 
 # Why not try a table
 This is to try a table.
