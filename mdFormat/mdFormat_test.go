@@ -23,15 +23,17 @@ func TestIsCommentedLine(t *testing.T) {
 
 func TestExtractCommentedDataField(t *testing.T) {
 	cases := []struct {
-		in, label, want string
+		in, label, def, want string
 	}{
-		{"[[//]]: # Century: \"Test\"", "Century", "Test"}, // With comment
-		{"Century: \"Test\"", "Century", "Test"},           //Beginning of line
-		{"Background: \"Test\"", "Century", ""},            // Not found
-		{"Century: Test", "Century", ""},                   //No comment
+		{"[[//]]: # Century: \"Test\"", "Century", "", "Test"},    // With comment
+		{"Century: \"Test\"", "Century", "", "Test"},              //Beginning of line
+		{"Background: \"Test\"", "Century", "", ""},               // Not found
+		{"Century: Test", "Century", "", ""},                      //No comment
+		{"Background: \"Test\"", "Century", "Default", "Default"}, // Default argument
+
 	}
 	for _, c := range cases {
-		got := ExtractCommentDataFiled(c.in, c.label)
+		got := ExtractCommentDataFiled(c.in, c.label, c.def)
 		if got != c.want {
 			t.Errorf("ExtractCommentDataFiled(%q, %q) == %q, want %q", c.in, c.label, got, c.want)
 		}

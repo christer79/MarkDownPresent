@@ -18,12 +18,12 @@ func IsCommentedLine(line string) bool {
 }
 
 // ExtractCommentDataFiled extracts labalse from a commented line given a key
-func ExtractCommentDataFiled(line string, label string) string {
+func ExtractCommentDataFiled(line string, label string, def string) string {
 	// TODO: Default return value woudl be clever here
 	commentRe := regexp.MustCompile(label + ": \"([^\"]*)\"")
 	value := commentRe.FindStringSubmatch(line)
 	if value == nil {
-		return ""
+		return def
 	}
 	return value[1]
 }
@@ -32,5 +32,10 @@ func ExtractCommentDataFiled(line string, label string) string {
 func MarkDownToHTML(markdown []byte) []byte {
 	content := blackfriday.MarkdownCommon(markdown)
 	html := bluemonday.UGCPolicy().SanitizeBytes(content)
+	prefix := []byte("<div>")
+	suffix := []byte("</div>")
+	html = append(prefix, html...)
+	html = append(html, suffix...)
+
 	return html
 }

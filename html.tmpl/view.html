@@ -1,0 +1,15 @@
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>
+  setTimeout(function(){ location.href = "{{.NextSlideNr}}"; },{{.Timeout}});
+</script>
+<script>
+  $(document).ready(function(){$("body").click(function(){location.href = "{{.NextSlideNr}}" ;});});
+</script>
+  <link rel="stylesheet" href={{.Style}}>
+</head>
+<body background="{{.Background}}">
+  {{printf "%s" .Body}}
+</body>
+</html>
