@@ -50,7 +50,6 @@ func loadPresentation(filename string) (Presentation, error) {
 	defaultStyle := ""
 	defaultBackground := ""
 	if mdFormat.IsCommentedLine(lines[0]) {
-		log.Println("Found comment")
 		author = mdFormat.ExtractCommentDataFiled(lines[0], "Author", "")
 		created = mdFormat.ExtractCommentDataFiled(lines[0], "Created", "")
 		defaultStyle = mdFormat.ExtractCommentDataFiled(lines[0], "Style", "")
