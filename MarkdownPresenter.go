@@ -10,8 +10,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/christer79/MarkDownPresent/fileTools"
 	"github.com/christer79/MarkDownPresent/mdFormat"
+	"github.com/christer79/file-tools"
 )
 
 // Slide represents one slinge slide with infomration about time to show and content
